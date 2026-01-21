@@ -6,10 +6,14 @@
 //
 
 import Foundation
+#if canImport(CryptoKit)
 import CryptoKit
+#else
+import Crypto
+#endif
 
 /// Result of assertion validation.
-enum AssertionValidationResult {
+public enum AssertionValidationResult {
     /// Signature verified successfully
     case verified
     
@@ -29,7 +33,7 @@ enum AssertionValidationResult {
 ///
 /// - Note: This is a forensic tool, not an authoritative verifier.
 ///   Validation confirms cryptographic correctness only.
-struct AssertionValidator {
+public struct AssertionValidator {
     
     /// Validates an assertion using the provided context.
     ///
@@ -43,7 +47,7 @@ struct AssertionValidator {
     ///
     /// - Parameter context: The validation context with all required inputs
     /// - Returns: A validation result indicating success or failure
-    static func validate(_ context: AssertionValidationContext) -> AssertionValidationResult {
+    public static func validate(_ context: AssertionValidationContext) -> AssertionValidationResult {
         // Validate context has required data (defensive check)
         guard !context.sigStructure.isEmpty else {
             return .cannotValidate(reason: "Sig_structure bytes are empty")
@@ -51,9 +55,6 @@ struct AssertionValidator {
         guard !context.signatureDER.isEmpty else {
             return .cannotValidate(reason: "Signature bytes are empty")
         }
-        
-        // Hash the Sig_structure (exact bytes - single source of truth)
-        let hash = SHA256.hash(data: context.sigStructure)
         
         // Parse the ASN.1 DER signature
         let signature: P256.Signing.ECDSASignature
@@ -65,8 +66,10 @@ struct AssertionValidator {
             return .failed(reason: "Failed to parse ASN.1 DER signature: \(error.localizedDescription)")
         }
         
-        // Verify the signature
-        let isValid = context.publicKey.isValidSignature(signature, for: hash)
+        // Verify the signature over the raw message (sigStructure)
+        // CryptoKit's isValidSignature(_:for: Data) expects the message and will hash it internally
+        // Do NOT pre-hash here - that would cause double-hashing (SHA256(SHA256(payload)))
+        let isValid = context.publicKey.isValidSignature(signature, for: context.sigStructure)
         
         if isValid {
             return .verified

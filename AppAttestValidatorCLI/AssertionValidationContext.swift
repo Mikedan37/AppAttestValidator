@@ -6,7 +6,11 @@
 //
 
 import Foundation
+#if canImport(CryptoKit)
 import CryptoKit
+#else
+import Crypto
+#endif
 
 /// Explicit verification inputs for assertion validation.
 ///
@@ -15,7 +19,7 @@ import CryptoKit
 ///
 /// - Note: This struct represents explicit verification inputs only.
 ///   It does not imply trust or make policy decisions.
-struct AssertionValidationContext {
+public struct AssertionValidationContext {
     /// The P-256 public key used for signature verification
     let publicKey: P256.Signing.PublicKey
     
@@ -32,7 +36,7 @@ struct AssertionValidationContext {
     ///   - sigStructure: The CBOR-encoded Sig_structure bytes (must be non-empty)
     ///   - signatureDER: The ASN.1 DER ECDSA signature (must be non-empty)
     /// - Throws: `ValidationContextError` if any required field is missing
-    init(publicKey: P256.Signing.PublicKey, sigStructure: Data, signatureDER: Data) throws {
+    public init(publicKey: P256.Signing.PublicKey, sigStructure: Data, signatureDER: Data) throws {
         guard !sigStructure.isEmpty else {
             throw ValidationContextError.missingSigStructure
         }
